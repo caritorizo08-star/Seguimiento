@@ -1,8 +1,8 @@
-// Carga de un mes: gestiones + cierre → Supabase. Solo la ejecuta un administrador (lo impone RLS).
+// Carga de un mes: gestiones → Supabase. Solo la ejecuta un administrador (lo impone RLS).
 import { sb } from './supabase'
 import { traerTodo } from './datos'
 import { calcularAlertas, NO_ESPECIFICA, type ReglasAlertas } from './alertas'
-import type { CierreLeido, GestionLeida } from './excel'
+import type { GestionLeida } from './excel'
 import type { Agente, RazonMora, Supervisor } from './tipos'
 import { norm, normSinTildes } from './util'
 
@@ -99,9 +99,7 @@ export interface OpcionesCarga {
   anio: number
   mes: number
   archivoGestiones: string
-  archivoCierre: string | null
   gestiones: GestionLeida[]
-  cierre: CierreLeido[] | null
   reemplazar: boolean
 }
 
@@ -112,7 +110,7 @@ export async function cargarMes(o: OpcionesCarga, avisar: Progreso): Promise<num
   if (existe && !o.reemplazar) throw new Error('Ese mes ya está cargado. Marcá «Reemplazar» para volver a cargarlo.')
 
   avisar('Actualizando catálogos (supervisores, agentes, razones)…')
-  const sups = await mapaSupervisores([...o.gestiones.map(g => g.supervisor), ...(o.cierre ?? []).map(c => c.supervisor)])
+  const sups = await mapaSupervisores(o.gestiones.map(g => g.supervisor))
   const agentes = await mapaAgentes(o.gestiones, sups)
   const razones = await mapaRazones(o.gestiones.map(g => g.razonOriginal))
 
@@ -130,8 +128,6 @@ export async function cargarMes(o: OpcionesCarga, avisar: Progreso): Promise<num
     await sb.from('periodos').update({ estado: 'cargando' }).eq('id_periodo', idPeriodo)
     const d1 = await sb.from('gestiones').delete().eq('id_periodo', idPeriodo)
     if (d1.error) throw new Error(d1.error.message)
-    const d2 = await sb.from('cierres').delete().eq('id_periodo', idPeriodo)
-    if (d2.error) throw new Error(d2.error.message)
   } else {
     const { data, error } = await sb.from('periodos').insert({ anio: o.anio, mes: o.mes, estado: 'cargando' }).select('id_periodo').single()
     if (error) throw new Error(error.message)
@@ -163,47 +159,10 @@ export async function cargarMes(o: OpcionesCarga, avisar: Progreso): Promise<num
   }))
   await enLotes(filasG, 'gestiones', n => avisar(`Guardando gestiones: ${n.toLocaleString('es-NI')} de ${filasG.length.toLocaleString('es-NI')}`, n / filasG.length))
 
-  if (o.cierre) {
-    const filasC = o.cierre.map(c => ({
-      id_periodo: idPeriodo,
-      credito: c.credito,
-      cliente: c.cliente || null,
-      id_supervisor: c.supervisor ? sups.get(norm(c.supervisor)) ?? null : null,
-      supervisor_original: c.supervisor || 'Sin Supervisor',
-      unidad: c.unidad || null,
-      usuario_asignado: c.usuarioAsignado || null,
-      tipo_credito: c.tipo || null,
-      producto: c.producto || null,
-      tipo_cartera: c.tipoCartera || null,
-      dias_mora_inicio: c.diasInicio,
-      tramo_inicio: c.tramoInicio,
-      tramo_cierre: c.tramoCierre,
-      saldo_inicio: c.saldoInicio,
-      saldo: c.saldo,
-      valor_vencido: c.vencido,
-      valor_cuota: c.cuota,
-      recaudo_meta: c.meta,
-      recaudo_mes: c.recaudo,
-      pago_vs_cuota: c.pagoVsCuota || null,
-      rodamiento: c.rodamiento || null,
-      estatus_ult_promesa: c.estatusPromesa || null,
-      fecha_ultima_promesa: c.fechaPromesa || null,
-      promesas: c.promesas,
-      gestiones: c.gestiones,
-      contactos: c.contactos,
-      rpc: c.rpc,
-      dias_sin_gestion: c.dsg,
-      estatus: c.estatus || null,
-    }))
-    await enLotes(filasC, 'cierres', n => avisar(`Guardando cierre: ${n.toLocaleString('es-NI')} de ${filasC.length.toLocaleString('es-NI')}`, n / filasC.length))
-  }
-
   const { error: e9 } = await sb.from('periodos').update({
     estado: 'listo',
     archivo_gestiones: o.archivoGestiones,
-    archivo_cierre: o.archivoCierre,
     filas_gestiones: filasG.length,
-    filas_cierre: o.cierre?.length ?? 0,
   }).eq('id_periodo', idPeriodo)
   if (e9) throw new Error(e9.message)
   avisar('Listo.', 1)

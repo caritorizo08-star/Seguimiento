@@ -57,18 +57,6 @@ export function aFechaHora(v: unknown): string {
 
 export const aFecha = (v: unknown): string => aFechaHora(v).slice(0, 10)
 
-/** Tramo de mora: 0 al día, 1 = 1–30, 2 = 31–60, 3 = 61–90, 4 = 91–120, 5 = 121–150, 6 = 151+. */
-export function tramoDe(dias: number): number {
-  if (dias <= 0) return 0
-  if (dias <= 30) return 1
-  if (dias <= 60) return 2
-  if (dias <= 90) return 3
-  if (dias <= 120) return 4
-  if (dias <= 150) return 5
-  return 6
-}
-export const TRAMOS = ['Al día', '1–30 días', '31–60 días', '61–90 días', '91–120 días', '121–150 días', '151+ días']
-
 /** Nombre de supervisor sin códigos ni prefijos, en formato Nombre Propio si venía todo en mayúsculas o minúsculas. */
 export function limpiarSupervisor(v: unknown): string {
   let t = limpiar(v)

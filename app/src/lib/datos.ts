@@ -1,6 +1,6 @@
 // Lectura de datos desde Supabase. RLS decide qué filas ve cada usuario.
 import { sb } from './supabase'
-import type { AccionMora, Agente, Cierre, GestionLigera, Periodo, RazonMora, Supervisor } from './tipos'
+import type { AccionMora, Agente, GestionLigera, Periodo, RazonMora, Supervisor } from './tipos'
 
 const PAGINA = 1000
 const PARALELO = 6
@@ -9,7 +9,7 @@ type Filtro = (q: any) => any // eslint-disable-line @typescript-eslint/no-expli
 
 /** Trae todas las filas de una consulta, en páginas de 1000 y varias en paralelo.
  *  `orden` debe ser una columna única dentro del filtro para que las páginas no se repitan. */
-export async function traerTodo<T>(tabla: string, columnas: string, filtro: Filtro = q => q, avisar?: (n: number) => void, orden = tabla === 'cierres' ? 'credito' : 'id_gestion'): Promise<T[]> {
+export async function traerTodo<T>(tabla: string, columnas: string, filtro: Filtro = q => q, avisar?: (n: number) => void, orden = 'id_gestion'): Promise<T[]> {
   const { count, error } = await filtro(sb.from(tabla).select(columnas, { count: 'exact', head: true }))
   if (error) throw new Error(error.message)
   const total = count ?? 0
@@ -52,15 +52,9 @@ export async function traerCatalogos(): Promise<Catalogos> {
 }
 
 export const COLS_GESTION_LIGERA = 'id_gestion, credito, cliente, saldo, codigo_accion, codigo_resultado, id_agente, fecha_actividad, id_razon, id_supervisor, tipo_credito, cartera, es_contacto, alerta_mask, alerta_prioridad'
-export const COLS_CIERRE = 'credito, cliente, id_supervisor, unidad, usuario_asignado, tipo_credito, producto, tipo_cartera, dias_mora_inicio, tramo_inicio, tramo_cierre, saldo_inicio, saldo, valor_vencido, valor_cuota, recaudo_meta, recaudo_mes, pago_vs_cuota, rodamiento, estatus_ult_promesa, fecha_ultima_promesa, promesas, gestiones, contactos, rpc, dias_sin_gestion, estatus'
-
-export async function traerMes(idPeriodo: number, avisar?: (m: string) => void): Promise<{ gestiones: GestionLigera[]; cierre: Cierre[] }> {
-  let g = 0, c = 0
-  const aviso = () => avisar?.(`Descargando ${g.toLocaleString('es-NI')} gestiones y ${c.toLocaleString('es-NI')} créditos del cierre…`)
-  const [gestiones, cierre] = await Promise.all([
-    traerTodo<GestionLigera>('gestiones', COLS_GESTION_LIGERA, q => q.eq('id_periodo', idPeriodo), n => { g = n; aviso() }),
-    traerTodo<Cierre>('cierres', COLS_CIERRE, q => q.eq('id_periodo', idPeriodo), n => { c = n; aviso() }),
-  ])
+export async function traerMes(idPeriodo: number, avisar?: (m: string) => void): Promise<{ gestiones: GestionLigera[] }> {
+  const gestiones = await traerTodo<GestionLigera>('gestiones', COLS_GESTION_LIGERA, q => q.eq('id_periodo', idPeriodo),
+    n => avisar?.(`Descargando ${n.toLocaleString('es-NI')} gestiones…`))
   gestiones.forEach(x => { if (x.fecha_actividad) x.fecha_actividad = x.fecha_actividad.replace('T', ' ') })
-  return { gestiones, cierre }
+  return { gestiones }
 }

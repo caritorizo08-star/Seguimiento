@@ -30,9 +30,7 @@ export interface Periodo {
   mes: number
   estado: 'cargando' | 'listo'
   archivo_gestiones: string | null
-  archivo_cierre: string | null
   filas_gestiones: number
-  filas_cierre: number
   creado_en: string
 }
 
@@ -103,34 +101,4 @@ export interface GestionDetalle extends GestionLigera {
   razon_original: string | null
   alerta_notas: string | null
   unidad: string | null
-}
-
-export interface Cierre {
-  credito: string
-  cliente: string | null
-  id_supervisor: number | null
-  unidad: string | null
-  usuario_asignado: string | null
-  tipo_credito: string | null
-  producto: string | null
-  tipo_cartera: string | null
-  dias_mora_inicio: number | null
-  tramo_inicio: number | null
-  tramo_cierre: number | null
-  saldo_inicio: number | null
-  saldo: number | null
-  valor_vencido: number | null
-  valor_cuota: number | null
-  recaudo_meta: number | null
-  recaudo_mes: number | null
-  pago_vs_cuota: string | null
-  rodamiento: string | null
-  estatus_ult_promesa: string | null
-  fecha_ultima_promesa: string | null
-  promesas: number | null
-  gestiones: number | null
-  contactos: number | null
-  rpc: number | null
-  dias_sin_gestion: number | null
-  estatus: string | null
 }

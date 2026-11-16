@@ -86,9 +86,7 @@ create table public.periodos (
   mes               smallint not null,
   estado            text not null default 'cargando',
   archivo_gestiones text,
-  archivo_cierre    text,
   filas_gestiones   integer not null default 0,
-  filas_cierre      integer not null default 0,
   cargado_por       uuid,
   creado_en         timestamptz not null default now(),
   actualizado_en    timestamptz not null default now(),
@@ -137,48 +135,6 @@ create index ix_gestiones_periodo_supervisor on public.gestiones (id_periodo, id
 create index ix_gestiones_periodo_credito on public.gestiones (id_periodo, credito);
 create index ix_gestiones_periodo_agente on public.gestiones (id_periodo, id_agente);
 create index ix_gestiones_alertas on public.gestiones (id_periodo, alerta_prioridad desc, fecha_actividad desc) where alerta_mask > 0;
-
--- ---------- Cierre de cartera ----------
-create table public.cierres (
-  id_cierre            bigint generated always as identity,
-  id_periodo           bigint not null,
-  credito              text not null,
-  cliente              text,
-  id_supervisor        bigint,                 -- null = "Sin Supervisor"
-  supervisor_original  text,
-  unidad               text,
-  usuario_asignado     text,
-  tipo_credito         text,
-  producto             text,
-  tipo_cartera         text,                   -- JUR, NIIF, CJT, ...
-  dias_mora_inicio     integer,
-  tramo_inicio         smallint,               -- 0 = al día, 1 = 1-30, ... 6 = 151+
-  tramo_cierre         smallint,
-  saldo_inicio         numeric(14,2),
-  saldo                numeric(14,2),
-  valor_vencido        numeric(14,2),
-  valor_cuota          numeric(14,2),
-  recaudo_meta         numeric(14,2),
-  recaudo_mes          numeric(14,2),
-  pago_vs_cuota        text,                   -- 'Sin pago', '< CUO', '>=CUO'
-  rodamiento           text,                   -- MEJORA, MANTIENE, DESMEJORA, CANCELADO
-  estatus_ult_promesa  text,                   -- Cumplida, Incumplida, Pendiente, Sin Promesa
-  fecha_ultima_promesa date,
-  promesas             integer,
-  gestiones            integer,
-  contactos            integer,
-  rpc                  integer,                -- contactos con el titular
-  dias_sin_gestion     integer,
-  estatus              text,                   -- En Mora, Al dia, Por vencer, Cancelado
-  creado_en            timestamptz not null default now(),
-  constraint pk_cierres primary key (id_cierre),
-  constraint uq_cierres_periodo_credito unique (id_periodo, credito),
-  constraint fk_cierres_periodo foreign key (id_periodo) references public.periodos (id_periodo) on delete cascade,
-  constraint fk_cierres_supervisor foreign key (id_supervisor) references public.supervisores (id_supervisor),
-  constraint ck_cierres_tramo_inicio check (tramo_inicio between 0 and 6),
-  constraint ck_cierres_tramo_cierre check (tramo_cierre between 0 and 7)
-);
-create index ix_cierres_periodo_supervisor on public.cierres (id_periodo, id_supervisor);
 
 -- ---------- Reglas de alertas (editables por el administrador) ----------
 create table public.alerta_reglas (
@@ -350,7 +306,6 @@ alter table public.razones_mora         enable row level security;
 alter table public.perfiles             enable row level security;
 alter table public.periodos             enable row level security;
 alter table public.gestiones            enable row level security;
-alter table public.cierres              enable row level security;
 alter table public.alerta_reglas        enable row level security;
 alter table public.alerta_categorias    enable row level security;
 alter table public.alerta_patrones      enable row level security;
@@ -394,10 +349,6 @@ create policy pl_perfiles_adm on public.perfiles for all to authenticated using 
 create policy pl_gestiones_sel on public.gestiones for select to authenticated
   using (public.fn_es_admin() or id_supervisor = public.fn_mi_supervisor());
 create policy pl_gestiones_adm on public.gestiones for all to authenticated using (public.fn_es_admin()) with check (public.fn_es_admin());
-
-create policy pl_cierres_sel on public.cierres for select to authenticated
-  using (public.fn_es_admin() or id_supervisor = public.fn_mi_supervisor());
-create policy pl_cierres_adm on public.cierres for all to authenticated using (public.fn_es_admin()) with check (public.fn_es_admin());
 
 -- Monitoreos: admin todo; supervisor ve y registra sobre su equipo, edita solo lo que él creó
 create policy pl_monitoreos_sel on public.monitoreos for select to authenticated

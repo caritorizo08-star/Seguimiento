@@ -6,7 +6,6 @@ import { nombreMes } from './lib/util'
 import Login, { NuevaClave } from './paginas/Login'
 import Dashboard from './paginas/Dashboard'
 import Acciones from './paginas/Acciones'
-import Resultados from './paginas/Resultados'
 import Alertas from './paginas/Alertas'
 import Monitoreo from './paginas/Monitoreo'
 import Cargar from './paginas/admin/Cargar'
@@ -52,7 +51,6 @@ function Marco() {
       <nav className="tabs">
         <NavLink to="/" end>Dashboard</NavLink>
         <NavLink to="/acciones">Acciones</NavLink>
-        <NavLink to="/resultados">Resultados</NavLink>
         <NavLink to="/alertas">Alertas</NavLink>
         <NavLink to="/monitoreo">Monitoreo</NavLink>
         {esAdmin && <><span className="sep" /><NavLink to="/cargar">Cargar mes</NavLink><NavLink to="/reglas">Reglas de alertas</NavLink><NavLink to="/usuarios">Usuarios</NavLink></>}
@@ -61,7 +59,6 @@ function Marco() {
         <Routes>
           <Route path="/" element={vistaDatos(<Dashboard />)} />
           <Route path="/acciones" element={vistaDatos(<Acciones />)} />
-          <Route path="/resultados" element={vistaDatos(<Resultados />)} />
           <Route path="/alertas" element={vistaDatos(<Alertas />)} />
           <Route path="/monitoreo" element={<Monitoreo />} />
           {esAdmin && <Route path="/cargar" element={<Cargar />} />}

@@ -2,22 +2,21 @@ import { Fragment, useMemo, useState } from 'react'
 import { useDatos } from '../estado'
 import { Filtros, useResumenFiltros } from '../componentes/Filtros'
 import { DetalleCredito } from '../componentes/DetalleCredito'
-import { filtrarGestiones, indiceCierre, porCredito, rzKey } from '../lib/calculos'
+import { filtrarGestiones, porCredito, rzKey } from '../lib/calculos'
 import { exportarExcel } from '../lib/excel'
 import { cordobas, nf, ordenEs, pct } from '../lib/util'
 
 export default function Dashboard() {
-  const { gestiones, cierre, catalogos, filtros } = useDatos()
+  const { gestiones, catalogos, filtros } = useDatos()
   const resumen = useResumenFiltros()
   const [vista, setVista] = useState<'g' | 'c'>('g')
-  const [orden, setOrden] = useState<'saldo' | 'alertas' | 'gestiones' | 'cobrado' | 'credito'>('saldo')
+  const [orden, setOrden] = useState<'saldo' | 'alertas' | 'gestiones' | 'credito'>('saldo')
   const [abierto, setAbierto] = useState<string | null>(null)
   const [limite, setLimite] = useState(100)
   const [buscar, setBuscar] = useState('')
 
   const g = useMemo(() => filtrarGestiones(gestiones, filtros), [gestiones, filtros])
   const creditos = useMemo(() => porCredito(g), [g])
-  const ci = useMemo(() => indiceCierre(cierre), [cierre])
   if (!catalogos) return null
 
   const nombreRazon = (k: number) => (k === 0 ? 'No especifica' : catalogos.razones.find(r => r.id_razon === k)?.nombre ?? '?')
@@ -58,15 +57,14 @@ export default function Dashboard() {
   // Detalle por cuenta
   const q = buscar.trim().toUpperCase()
   const lista = [...creditos.values()].filter(c => !q || c.credito.includes(q) || c.cliente.toUpperCase().includes(q))
-  const cobrado = (c: string) => ci.get(c)?.recaudo_mes ?? 0
   lista.sort((a, b) => orden === 'saldo' ? b.saldo - a.saldo : orden === 'alertas' ? b.alertas - a.alertas || b.maxPrioridad - a.maxPrioridad
-    : orden === 'gestiones' ? b.gestiones - a.gestiones : orden === 'cobrado' ? cobrado(b.credito) - cobrado(a.credito) : a.credito.localeCompare(b.credito))
+    : orden === 'gestiones' ? b.gestiones - a.gestiones : a.credito.localeCompare(b.credito))
   const saldoTotal = [...creditos.values()].reduce((s, c) => s + c.saldo, 0)
   const conRazon = g.filter(x => x.id_razon !== null).length
 
   function exportar() {
-    exportarExcel('detalle_por_cuenta', ['Crédito', 'Cliente', 'Cartera', 'Tipo', 'Supervisor (última gestión)', 'Gestiones', 'Razones del mes', 'Saldo (C$)', 'Alertas', 'Cobrado en el mes (C$)'],
-      lista.map(c => [c.credito, c.cliente, c.cartera, c.tipo, nombreSup(c.id_supervisor), c.gestiones, [...c.razones].map(nombreRazon).join(', ') || 'No especifica', Math.round(c.saldo), c.alertas, Math.round(cobrado(c.credito))]))
+    exportarExcel('detalle_por_cuenta', ['Crédito', 'Cliente', 'Cartera', 'Tipo', 'Supervisor (última gestión)', 'Gestiones', 'Razones del mes', 'Saldo (C$)', 'Alertas'],
+      lista.map(c => [c.credito, c.cliente, c.cartera, c.tipo, nombreSup(c.id_supervisor), c.gestiones, [...c.razones].map(nombreRazon).join(', ') || 'No especifica', Math.round(c.saldo), c.alertas]))
   }
 
   return (
@@ -129,22 +127,22 @@ export default function Dashboard() {
             <div className="campo"><label htmlFor="dbus">Buscar crédito o cliente</label><input id="dbus" value={buscar} onChange={e => setBuscar(e.target.value)} /></div>
             <div className="campo"><label htmlFor="dord">Ordenar por</label>
               <select id="dord" value={orden} onChange={e => setOrden(e.target.value as typeof orden)}>
-                <option value="saldo">Saldo</option><option value="alertas">Alertas</option><option value="gestiones">Número de gestiones</option><option value="cobrado">Cobrado en el mes</option><option value="credito">Crédito</option>
+                <option value="saldo">Saldo</option><option value="alertas">Alertas</option><option value="gestiones">Número de gestiones</option><option value="credito">Crédito</option>
               </select></div>
             <button className="btn" type="button" onClick={exportar}>Exportar a Excel</button>
           </div>
         </div>
         <div className="wrap"><table>
-          <thead><tr><th>Crédito</th><th>Cliente</th><th>Tipo</th><th>Supervisor (última gestión)</th><th className="n">Gestiones</th><th>Razones del mes</th><th className="n">Saldo (C$)</th><th className="n">Alertas</th><th className="n">Cobrado (C$)</th></tr></thead>
+          <thead><tr><th>Crédito</th><th>Cliente</th><th>Tipo</th><th>Supervisor (última gestión)</th><th className="n">Gestiones</th><th>Razones del mes</th><th className="n">Saldo (C$)</th><th className="n">Alertas</th></tr></thead>
           <tbody>{lista.slice(0, limite).map(c => (
             <Fragment key={c.credito}>
               <tr className={'click' + (abierto === c.credito ? ' on' : '')} tabIndex={0} aria-expanded={abierto === c.credito}
                 onClick={() => setAbierto(abierto === c.credito ? null : c.credito)} onKeyDown={e => { if (e.key === 'Enter') setAbierto(abierto === c.credito ? null : c.credito) }}>
                 <td className="nw"><b>{abierto === c.credito ? '▾' : '▸'} {c.credito}</b></td><td>{c.cliente}</td><td>{c.tipo}</td><td>{nombreSup(c.id_supervisor)}</td>
                 <td className="n">{c.gestiones}</td><td>{[...c.razones].map(k => <span key={k} className="tag">{nombreRazon(k)}</span>)}</td>
-                <td className="n">{nf.format(Math.round(c.saldo))}</td><td className="n">{c.alertas ? <span className={'prio p' + c.maxPrioridad}>{c.alertas}</span> : ''}</td><td className="n">{nf.format(Math.round(cobrado(c.credito)))}</td>
+                <td className="n">{nf.format(Math.round(c.saldo))}</td><td className="n">{c.alertas ? <span className={'prio p' + c.maxPrioridad}>{c.alertas}</span> : ''}</td>
               </tr>
-              {abierto === c.credito && <DetalleCredito credito={c.credito} columnas={9} />}
+              {abierto === c.credito && <DetalleCredito credito={c.credito} columnas={8} />}
             </Fragment>
           ))}</tbody>
         </table></div>

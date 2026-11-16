@@ -1,6 +1,6 @@
 // Cálculos del dashboard sobre los datos del mes ya descargados.
 import type { Filtros } from '../estado'
-import type { Cierre, GestionLigera } from './tipos'
+import type { GestionLigera } from './tipos'
 
 export const rzKey = (id: number | null) => id ?? 0 // 0 = No especifica
 
@@ -74,7 +74,3 @@ export function contar<T>(xs: T[], clave: (x: T) => string | number): Map<string
   return m
 }
 
-export const indiceCierre = (c: Cierre[]) => new Map(c.map(x => [x.credito, x]))
-
-/** Mes 'aaaa-mm' de una fecha. */
-export const mesDe = (f: string | null) => (f ? f.slice(0, 7) : '')

@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import type { Session } from '@supabase/supabase-js'
 import { sb } from './lib/supabase'
 import { traerCatalogos, traerMes, type Catalogos } from './lib/datos'
-import type { Cierre, GestionLigera, Perfil } from './lib/tipos'
+import type { GestionLigera, Perfil } from './lib/tipos'
 
 // ---------------- Sesión ----------------
 interface Auth { session: Session | null; perfil: Perfil | null; cargando: boolean; error: string; salir: () => Promise<void> }
@@ -54,7 +54,6 @@ interface Datos {
   idPeriodo: number | null
   setIdPeriodo: (id: number) => void
   gestiones: GestionLigera[]
-  cierre: Cierre[]
   cargando: string
   error: string
   filtros: Filtros
@@ -68,7 +67,7 @@ export const useDatos = () => useContext(DatosCtx)
 export function DatosProvider({ children }: { children: ReactNode }) {
   const [catalogos, setCatalogos] = useState<Catalogos | null>(null)
   const [idPeriodo, setIdPeriodo] = useState<number | null>(null)
-  const [mes, setMes] = useState<{ id: number; gestiones: GestionLigera[]; cierre: Cierre[] } | null>(null)
+  const [mes, setMes] = useState<{ id: number; gestiones: GestionLigera[] } | null>(null)
   const [cargando, setCargando] = useState('')
   const [error, setError] = useState('')
   const [filtros, setFiltros] = useState<Filtros>(FILTROS_INICIALES)
@@ -96,7 +95,6 @@ export function DatosProvider({ children }: { children: ReactNode }) {
   const valor = useMemo<Datos>(() => ({
     catalogos, idPeriodo, setIdPeriodo: (id: number) => { setIdPeriodo(id); setFiltros(FILTROS_INICIALES) },
     gestiones: mes && mes.id === idPeriodo ? mes.gestiones : [],
-    cierre: mes && mes.id === idPeriodo ? mes.cierre : [],
     cargando, error, filtros, setFiltros, recargarCatalogos,
     recargarMes: () => setVersion(v => v + 1),
   }), [catalogos, idPeriodo, mes, cargando, error, filtros, recargarCatalogos])
