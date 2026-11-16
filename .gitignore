@@ -1,0 +1,13 @@
+node_modules/
+dist/
+*.local
+.DS_Store
+Thumbs.db
+
+# Nunca subir datos de clientes ni archivos de trabajo
+*.xlsx
+*.xls
+*.csv
+*.pptx
+*.docx
+scripts-prueba/
