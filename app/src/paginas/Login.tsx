@@ -43,28 +43,35 @@ export default function Login() {
   )
 }
 
-/** Pantalla para definir la contraseña después de entrar por un enlace de invitación o recuperación. */
-export function NuevaClave({ listo }: { listo: () => void }) {
+/** Pantalla para definir la contraseña: clave temporal, enlace de recuperación o cambio voluntario. */
+export function NuevaClave({ listo, titulo = 'Creá tu contraseña', mensaje, cancelar }: { listo: () => void; titulo?: string; mensaje?: string; cancelar?: () => void }) {
   const [clave, setClave] = useState('')
   const [clave2, setClave2] = useState('')
   const [error, setError] = useState('')
+  const [guardando, setGuardando] = useState(false)
   async function guardar(e: FormEvent) {
     e.preventDefault(); setError('')
     if (clave.length < 10) { setError('Usá al menos 10 caracteres.'); return }
     if (clave !== clave2) { setError('Las contraseñas no coinciden.'); return }
+    setGuardando(true)
     const { error: err } = await sb.auth.updateUser({ password: clave })
-    if (err) setError(err.message); else listo()
+    if (err) { setGuardando(false); setError(err.message.includes('different from the old') ? 'La nueva contraseña debe ser distinta de la actual.' : err.message); return }
+    await sb.rpc('fn_clave_cambiada')
+    setGuardando(false)
+    listo()
   }
   return (
     <div className="login">
       <div className="caja">
         <img className="logo" src={logo} alt="Instacredit" />
-        <h1>Creá tu contraseña</h1>
+        <h1>{titulo}</h1>
+        {mensaje && <p className="sub">{mensaje}</p>}
         <form onSubmit={guardar}>
           {error && <div className="aviso error">{error}</div>}
-          <div className="campo"><label htmlFor="nc1">Nueva contraseña</label><input id="nc1" type="password" autoComplete="new-password" value={clave} onChange={e => setClave(e.target.value)} /></div>
+          <div className="campo"><label htmlFor="nc1">Nueva contraseña (mínimo 10 caracteres)</label><input id="nc1" type="password" autoComplete="new-password" value={clave} onChange={e => setClave(e.target.value)} /></div>
           <div className="campo"><label htmlFor="nc2">Repetila</label><input id="nc2" type="password" autoComplete="new-password" value={clave2} onChange={e => setClave2(e.target.value)} /></div>
-          <button className="btn" type="submit">Guardar</button>
+          <button className="btn" type="submit" disabled={guardando}>{guardando ? 'Guardando…' : 'Guardar'}</button>
+          {cancelar && <button className="btn2" type="button" onClick={cancelar}>Cancelar</button>}
         </form>
       </div>
     </div>

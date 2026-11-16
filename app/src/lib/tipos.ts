@@ -8,6 +8,7 @@ export interface Perfil {
   rol: Rol
   id_supervisor: number | null
   activo: boolean
+  debe_cambiar_clave: boolean
 }
 
 export interface Supervisor { id_supervisor: number; nombre: string; activo: boolean }

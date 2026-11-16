@@ -10,11 +10,11 @@ import Alertas from './paginas/Alertas'
 import Monitoreo from './paginas/Monitoreo'
 import Cargar from './paginas/admin/Cargar'
 import Reglas from './paginas/admin/Reglas'
-import Usuarios from './paginas/admin/Usuarios'
+import Administrador from './paginas/admin/Administrador'
 import logo from './assets/logo_claro.png'
 import mascota from './assets/prestamito_pensando.png'
 
-function Marco() {
+function Marco({ cambiarClave }: { cambiarClave: () => void }) {
   const { perfil, session, salir } = useAuth()
   const { catalogos, idPeriodo, setIdPeriodo, cargando, error, gestiones } = useDatos()
   const esAdmin = perfil?.rol === 'admin'
@@ -46,6 +46,7 @@ function Marco() {
           </select>
         )}
         <span className="usr">{perfil?.nombre} · {esAdmin ? 'Administrador' : 'Supervisor' + (supervisor ? ` (${supervisor})` : '')}<br /><small>{session?.user.email}</small></span>
+        <button className="btn2 mini" type="button" onClick={cambiarClave}>Cambiar contraseña</button>
         <button className="btn2 mini" type="button" onClick={salir}>Salir</button>
       </header>
       <nav className="tabs">
@@ -53,7 +54,7 @@ function Marco() {
         <NavLink to="/acciones">Acciones</NavLink>
         <NavLink to="/alertas">Alertas</NavLink>
         <NavLink to="/monitoreo">Monitoreo</NavLink>
-        {esAdmin && <><span className="sep" /><NavLink to="/cargar">Cargar mes</NavLink><NavLink to="/reglas">Reglas de alertas</NavLink><NavLink to="/usuarios">Usuarios</NavLink></>}
+        {esAdmin && <><span className="sep" /><NavLink to="/cargar">Cargar mes</NavLink><NavLink to="/reglas">Reglas de alertas</NavLink><NavLink to="/administrador">Administrador</NavLink></>}
       </nav>
       <main>
         <Routes>
@@ -63,7 +64,7 @@ function Marco() {
           <Route path="/monitoreo" element={<Monitoreo />} />
           {esAdmin && <Route path="/cargar" element={<Cargar />} />}
           {esAdmin && <Route path="/reglas" element={<Reglas />} />}
-          {esAdmin && <Route path="/usuarios" element={<Usuarios />} />}
+          {esAdmin && <Route path="/administrador" element={<Administrador />} />}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
@@ -74,6 +75,8 @@ function Marco() {
 function Puerta() {
   const { session, perfil, cargando, error, salir } = useAuth()
   const [recuperando, setRecuperando] = useState(false)
+  const [cambiando, setCambiando] = useState(false)
+  const [claveCambiada, setClaveCambiada] = useState(false)
   useEffect(() => {
     const { data } = sb.auth.onAuthStateChange(e => { if (e === 'PASSWORD_RECOVERY') setRecuperando(true) })
     try { if (sessionStorage.getItem('tipo_enlace')) setRecuperando(true) } catch { /* sin storage */ }
@@ -87,7 +90,13 @@ function Puerta() {
       <h1>Sin acceso</h1><p>{error}</p><button className="btn" type="button" onClick={salir}>Salir</button>
     </div></div>
   )
-  return <DatosProvider><HashRouter><Marco /></HashRouter></DatosProvider>
+  // Clave temporal: hay que cambiarla antes de entrar
+  if (perfil.debe_cambiar_clave && !claveCambiada) return (
+    <NuevaClave titulo="Cambiá tu clave temporal" mensaje="Entraste con una clave temporal. Elegí tu contraseña personal para continuar."
+      listo={() => setClaveCambiada(true)} cancelar={salir} />
+  )
+  if (cambiando) return <NuevaClave titulo="Cambiar contraseña" listo={() => setCambiando(false)} cancelar={() => setCambiando(false)} />
+  return <DatosProvider><HashRouter><Marco cambiarClave={() => setCambiando(true)} /></HashRouter></DatosProvider>
 }
 
 export default function App() {
