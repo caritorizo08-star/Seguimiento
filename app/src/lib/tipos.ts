@@ -35,7 +35,7 @@ export interface Periodo {
   creado_en: string
 }
 
-export type TipoRegla = 'palabras' | 'razon_distinta' | 'razon_no_registrada' | 'contacto_sin_razon' | 'llamadas_dia' | 'promesas_mes'
+export type TipoRegla = 'palabras' | 'razon_distinta' | 'razon_no_registrada' | 'contacto_sin_razon' | 'llamadas_dia' | 'promesas_mes' | 'codigos_resultado'
 
 export interface AlertaRegla {
   id_regla: number

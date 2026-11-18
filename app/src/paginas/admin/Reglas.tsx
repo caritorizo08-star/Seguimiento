@@ -11,6 +11,7 @@ const TIPOS: Record<TipoRegla, string> = {
   contacto_sin_razon: 'Hubo contacto con el titular y no se registró razón',
   llamadas_dia: 'Muchas llamadas al mismo crédito en un día',
   promesas_mes: 'Muchas promesas o postergaciones en el mes',
+  codigos_resultado: 'Toda gestión con alguno de estos códigos de resultado',
 }
 
 /** Editor de reglas de alertas. Solo admin (RLS impide que otro rol guarde). */
@@ -41,7 +42,7 @@ export default function Reglas() {
 
   async function guardar() {
     setError(''); setOk('')
-    const malos = [...reglas.filter(r => invalido(r.patron)).map(r => r.nombre), ...cats.filter(c => invalido(c.patron)).map(c => c.nombre), ...pats.filter(p => invalido(p.patron)).map(p => p.clave)]
+    const malos = [...reglas.filter(r => r.tipo !== 'codigos_resultado' && invalido(r.patron)).map(r => r.nombre), ...cats.filter(c => invalido(c.patron)).map(c => c.nombre), ...pats.filter(p => invalido(p.patron)).map(p => p.clave)]
     if (malos.length) { setError('Hay patrones con errores de sintaxis: ' + malos.join(', ')); return }
     for (const r of reglas) {
       const { error: e } = await sb.from('alerta_reglas').update({ nombre: r.nombre, prioridad: r.prioridad, patron: r.patron || null, razones_disparan: r.razones_disparan, umbral: r.umbral, activa: r.activa }).eq('id_regla', r.id_regla)
@@ -79,7 +80,7 @@ export default function Reglas() {
         <div className="wrap"><table>
           <thead><tr><th>Activa</th><th>Alerta</th><th>Prioridad</th><th>Tipo</th><th>Patrón / umbral</th><th>Razones que también disparan</th></tr></thead>
           <tbody>{reglas.map(r => (
-            <tr key={r.id_regla} style={coincide(r.patron) ? { outline: '2px solid var(--amarillo)' } : undefined}>
+            <tr key={r.id_regla} style={r.tipo === 'palabras' && coincide(r.patron) ? { outline: '2px solid var(--amarillo)' } : undefined}>
               <td><input type="checkbox" checked={r.activa} aria-label={'Activa: ' + r.nombre} onChange={e => setR(r.id_regla, { activa: e.target.checked })} /></td>
               <td><input value={r.nombre} aria-label="Nombre" onChange={e => setR(r.id_regla, { nombre: e.target.value })} style={{ minWidth: 220 }} /></td>
               <td><select value={r.prioridad} aria-label="Prioridad" onChange={e => setR(r.id_regla, { prioridad: +e.target.value as 1 | 2 | 3 })}>{[3, 2, 1].map(p => <option key={p} value={p}>{PRIORIDADES[p]}</option>)}</select></td>
@@ -89,7 +90,8 @@ export default function Reglas() {
                 {(r.tipo === 'llamadas_dia' || r.tipo === 'promesas_mes') && <label className="chk">desde <input type="number" min={2} value={r.umbral ?? ''} onChange={e => setR(r.id_regla, { umbral: +e.target.value })} style={{ width: 70 }} /> {r.tipo === 'llamadas_dia' ? 'llamadas el mismo día' : 'promesas en el mes'}</label>}
                 {['razon_distinta', 'razon_no_registrada'].includes(r.tipo) && <span className="sub">Usa las categorías de abajo</span>}
                 {r.tipo === 'contacto_sin_razon' && <span className="sub">Usa los códigos de resultado de contacto y el patrón «no contesta»</span>}
-                {coincide(r.patron) && <div className="mejor">✓ coincide</div>}
+                {r.tipo === 'codigos_resultado' && <label className="chk">códigos <input value={r.patron ?? ''} aria-label="Códigos de resultado" placeholder="PRP, PRL" onChange={e => setR(r.id_regla, { patron: e.target.value.toUpperCase() })} style={{ minWidth: 200 }} /></label>}
+                {r.tipo === 'palabras' && coincide(r.patron) && <div className="mejor">✓ coincide</div>}
               </td>
               <td>{r.tipo === 'palabras' && <input value={r.razones_disparan.join(', ')} aria-label="Razones" onChange={e => setR(r.id_regla, { razones_disparan: lista(e.target.value) })} style={{ minWidth: 200 }} />}</td>
             </tr>

@@ -26,6 +26,11 @@ export function compilar(patron: string | null | undefined): RegExp | null {
   try { return new RegExp(patron) } catch { return null }
 }
 
+/** Lista de códigos de resultado separados por coma o espacio (regla 'codigos_resultado'). */
+export function listaCodigos(texto: string | null | undefined): Set<string> {
+  return new Set((texto ?? '').toUpperCase().split(/[\s,;|]+/).filter(Boolean))
+}
+
 export function prioridadDe(mask: number, reglas: AlertaRegla[]): number {
   return reglas.reduce((p, r) => ((mask & r.bit) && r.prioridad > p ? r.prioridad : p), 0)
 }
@@ -43,6 +48,7 @@ export function calcularAlertas(filas: FilaParaAlertas[], cfg: ReglasAlertas): R
   const rContacto = regla('contacto_sin_razon')[0]
   const rLlamadas = regla('llamadas_dia')[0]
   const rPromesas = regla('promesas_mes')[0]
+  const porCodigoResultado = regla('codigos_resultado').map(r => ({ r, codigos: listaCodigos(r.patron) }))
   const categorias = cfg.categorias.filter(c => c.activa).map(c => ({ c, rx: compilar(c.patron) }))
 
   // Códigos de resultado de contacto: los que casi siempre llevan razón de mora
@@ -71,6 +77,9 @@ export function calcularAlertas(filas: FilaParaAlertas[], cfg: ReglasAlertas): R
 
     for (const { r, rx } of palabras) {
       if ((rx && rx.test(C)) || r.razones_disparan.includes(f.razon)) m |= r.bit
+    }
+    for (const { r, codigos } of porCodigoResultado) {
+      if (codigos.has(f.codigoResultado.toUpperCase())) m |= r.bit
     }
     const sugeridas = categorias.filter(x => x.rx?.test(C))
     if (sugeridas.length) {
