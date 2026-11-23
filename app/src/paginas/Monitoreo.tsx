@@ -13,6 +13,7 @@ export default function Monitoreo() {
   const [mons, setMons] = useState<Mon[]>([])
   const [criterios, setCriterios] = useState<CriterioEvaluacion[]>([])
   const [periodo, setPeriodo] = useState<number | ''>('')
+  const [supervisor, setSupervisor] = useState<number | ''>('')
   const [agente, setAgente] = useState<number | null>(null)
   const [editar, setEditar] = useState<Mon | null>(null)
   const [error, setError] = useState('')
@@ -33,7 +34,9 @@ export default function Monitoreo() {
   const nombrePer = (id: number) => { const p = catalogos.periodos.find(x => x.id_periodo === id); return p ? nombreMes(p.anio, p.mes) : '' }
   const criterio = (id: number) => criterios.find(c => c.id_criterio === id)?.descripcion ?? '?'
 
-  const filtrados = mons.filter(m => periodo === '' || m.id_periodo === periodo)
+  const esAdmin = perfil?.rol === 'admin'
+  const supsConMonitoreo = [...new Set(mons.map(m => m.id_supervisor))].sort((a, b) => ordenEs(nombreSup(a), nombreSup(b)))
+  const filtrados = mons.filter(m => (periodo === '' || m.id_periodo === periodo) && (supervisor === '' || m.id_supervisor === supervisor))
   type Res = { n: number; ev: Mon[]; sinRetro: number; sup: number; fallas: Map<number, number> }
   const porAg = new Map<number, Res>()
   for (const m of filtrados) {
@@ -61,6 +64,12 @@ export default function Monitoreo() {
           <select id="mper" value={periodo} onChange={e => setPeriodo(e.target.value === '' ? '' : +e.target.value)}>
             <option value="">Todos los meses</option>{catalogos.periodos.map(p => <option key={p.id_periodo} value={p.id_periodo}>{nombreMes(p.anio, p.mes)}</option>)}
           </select></div>
+        {esAdmin && (
+          <div className="campo"><label htmlFor="msup">Supervisor</label>
+            <select id="msup" value={supervisor} onChange={e => { setSupervisor(e.target.value === '' ? '' : +e.target.value); setAgente(null) }}>
+              <option value="">Todos los supervisores</option>{supsConMonitoreo.map(s => <option key={s} value={s}>{nombreSup(s)}</option>)}
+            </select></div>
+        )}
         <button className="btn" type="button" onClick={exportar}>Exportar a Excel</button>
       </div>
       <div className="kpis">
