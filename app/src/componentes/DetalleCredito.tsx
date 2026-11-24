@@ -12,7 +12,7 @@ export function DetalleCredito({ credito, columnas }: { credito: string; columna
   const [error, setError] = useState('')
   useEffect(() => {
     if (idPeriodo == null) return
-    sb.from('gestiones').select('*').eq('id_periodo', idPeriodo).eq('credito', credito).order('fecha_actividad').then(({ data, error: e }) => {
+    sb.from('gestiones').select('*').eq('id_periodo', idPeriodo).eq('credito', credito).order('fecha_actividad', { ascending: false }).then(({ data, error: e }) => {
       if (e) setError(e.message); else setFilas(data ?? [])
     })
   }, [credito, idPeriodo])
