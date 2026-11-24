@@ -13,6 +13,25 @@ import Reglas from './paginas/admin/Reglas'
 import Administrador from './paginas/admin/Administrador'
 import logo from './assets/logo_claro.png'
 import mascota from './assets/prestamito_pensando.png'
+import { hayVersionNueva, VERSION } from './version'
+
+/** Avisa cuando hay una versión publicada más nueva que la abierta. */
+function AvisoVersion() {
+  const [nueva, setNueva] = useState(false)
+  useEffect(() => {
+    const revisar = () => hayVersionNueva().then(setNueva)
+    revisar()
+    const t = setInterval(revisar, 5 * 60e3)
+    return () => clearInterval(t)
+  }, [])
+  if (!nueva) return null
+  return (
+    <div className="aviso ok" style={{ margin: '8px 16px', display: 'flex', gap: 12, alignItems: 'center' }}>
+      Hay una versión nueva de la app.
+      <button className="btn mini" type="button" onClick={() => location.reload()}>Actualizar ahora</button>
+    </div>
+  )
+}
 
 function Marco({ cambiarClave }: { cambiarClave: () => void }) {
   const { perfil, session, salir } = useAuth()
@@ -45,10 +64,11 @@ function Marco({ cambiarClave }: { cambiarClave: () => void }) {
             {listos.map(p => <option key={p.id_periodo} value={p.id_periodo}>{nombreMes(p.anio, p.mes)}</option>)}
           </select>
         )}
-        <span className="usr">{perfil?.nombre} · {esAdmin ? 'Administrador' : 'Supervisor' + (supervisor ? ` (${supervisor})` : '')}<br /><small>{session?.user.email}</small></span>
+        <span className="usr">{perfil?.nombre} · {esAdmin ? 'Administrador' : 'Supervisor' + (supervisor ? ` (${supervisor})` : '')}<br /><small>{session?.user.email} · versión {VERSION}</small></span>
         <button className="btn2 mini" type="button" onClick={cambiarClave}>Cambiar contraseña</button>
         <button className="btn2 mini" type="button" onClick={salir}>Salir</button>
       </header>
+      <AvisoVersion />
       <nav className="tabs">
         <NavLink to="/" end>Dashboard</NavLink>
         <NavLink to="/acciones">Acciones</NavLink>
